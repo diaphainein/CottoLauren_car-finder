@@ -1,0 +1,10 @@
+#!/bin/bash
+pkg_path=$(dirname $(dirname "$(realpath "$0")"))
+echo "📦📦📦 -> Start output from: @jworkman-fs/wdv-cli"
+echo "Package path: $pkg_path"
+echo "  🛜 - Testing connection to http://localhost:8080"
+jest --testRegex "(.*)wdv-cli(.*)contacts.test.js$" $pkg_path/Testing/Contacts/contacts.test.js
+echo "  🗑️ - Taking out the trash from previous test results."
+curl --silent -X DELETE http://localhost:8080/v1/contacts/325 > /dev/null
+curl --silent -X DELETE http://localhost:8080/v1/contacts/324 > /dev/null
+echo "📦📦📦 -> End output from: @jworkman-fs/wdv-cli"

@@ -1,0 +1,281 @@
+#!/bin/bash
+
+# Set our default course code to ASL/WDV442
+course_code="WDV442"
+
+# Get the full path of the current script
+script_path=$(dirname "$(realpath "$0")")
+package_path=$(dirname "$script_path")
+
+# Load in our bash helper functions
+source "$script_path/helpers/colors.sh"
+source "$script_path/helpers/repos.sh"
+source "$script_path/helpers/setup.sh"
+source "$script_path/helpers/paths.sh"
+
+
+# Colors
+RED='\033[0;31m'
+GREEN='\033[32m'
+NC='\033[0m' # No Color
+
+# Get the full path of the current working dir from the user's shell
+default_path=$(pwd)
+
+# Grab the course files from our script_path var
+course_files="$(dirname $script_path)/files/$course_code"
+
+src_path="$(dirname $script_path)/src/$course_code"
+
+# Function to display the help menu
+show_help() {
+    echo "Usage: wdv-cli <course code> <assignment> <action>:<task>"
+    echo
+    echo "Commands:"
+    echo 
+    echo 
+    echo "  pwa                  Programming for Web Applications (PWA-O | WDV3322)"
+    echo 
+    echo "    car-finder         Car list assignment for week one"
+    echo "      download:data    Downloads all of the JSON lists & data needed for assignment."
+    echo 
+    echo 
+    echo "  asl                  Advanced Server-side Languages online course (ASL-O | WDV442)"
+    echo 
+    echo "    contacts-book      Space tracker project for weeks three and four of ASL/WDV442"
+    echo "      setup:tests      Runs all of the tests for your contacts book API assignment."
+    echo 
+    echo "    space-tracker      Space tracker project for weeks three and four of ASL/WDV442"
+    echo "      setup:all        Initializes a brand new Space Tracker project from scratch"
+    echo "      setup:docker     Sets up & configures Docker for an existing Space Tracker project"
+    echo "      setup:git-repo   Sets up & configures a new Git repository for an existing project"
+    echo
+    echo
+    echo "  boilerplate          Pre-written boilerplate code you can use for various different project structures"
+    echo 
+    echo "    webpack            Boilerplate code for setting up a Webpack project structure"
+    echo "      ts:sass|css        Utilizes TypeScript as the project's main scripting language using CSS|SASS"
+    echo "      es6:sass|css       Utilizes regular ES6 as the project's main scripting language using CSS|SASS"
+    echo 
+    echo "Example:"
+    echo "  wdv-cli pwa list-comparison download:data"
+    echo "  wdv-cli asl contacts-book setup:tests"
+    echo "  wdv-cli boilerplate webpack ts:scss"
+    echo "  wdv-cli boilerplate webpack es6:css"
+    echo 
+}
+
+handle_space_tracker() {
+  echo "Setting assignment to: $(print_green "space tracker")"
+  echo "$1"
+  case "$1" in
+    "setup:all")
+      echo $project_path
+      echo $course_files
+      echo $course_code
+      echo $default_path
+      echo $script_path
+      setup_all $project_path $course_files $course_code $default_path $script_path
+      ;;
+    "setup:docker")
+      setup_docker $project_path $course_files $course_code $default_path $script_path
+      ;;
+    "setup:git-repo")
+      setup_repo $project_path $course_files $course_code $default_path $script_path
+      ;;
+    "setup:node")
+      setup_node $project_path $course_files $course_code $default_path $script_path
+      ;;
+    *)
+      echo "Missing $1 a valid <command>:<sub-command>. Needed to execute any of the tasks."
+      echo "Outlined below you can see the proper usage, syntax, and available commands."
+      echo 
+      echo 
+      show_help
+      ;;
+  esac
+}
+
+
+handle_contacts_book() {
+  echo "Setting assignment to: $(print_green "contacts book")"
+  src_test_path=$src_path/Testing/contacts.test.js
+  dest_test_path=$default_path/contacts.test.js
+  case $1 in
+    "setup:tests")
+      echo "Copying: $(print_blue "$src_test_path") -> $dest_test_path"
+      cp -f "$src_test_path" "$dest_test_path"
+      touch "$dest_test_path"
+      cat "$src_test_path" > "$dest_test_path"
+      if [ ! -f "$dest_test_path" ]; then
+        echo "Error: Looks like we could not copy the testing file to your project. Please reach out to your instructor immediately."
+      elif [ ! -s "$dest_test_path" ]; then
+        echo "Error: Looks like we could not copy the testing file to your project. Please reach out to your instructor immediately."
+      else
+        echo "Finished... Tests should be ready to go....."
+        echo -e "
+        You can run your tests by running the following command: 
+
+         $ 💻 👉 jest
+
+        That should automatically run the contacts.test.js script 
+        we just installed inside your project directory. 
+        "
+      fi
+      ;;
+    *)
+      show_help
+      ;;
+  esac
+}
+
+# Function to handle server related commands
+handle_wdv442() {
+  course_code="WDV442"
+  echo "Setting course code to: $course_code"
+  course_files="$(dirname $script_path)/files/$course_code/$1"
+  case $1 in 
+    "contacts-book")
+      handle_contacts_book $2
+      ;;
+    "space-tracker")
+      handle_space_tracker $2
+      ;;
+    *)
+      show_help
+      ;;
+  esac
+}
+
+# Function to handle server related commands
+handle_wdv3322() {
+  course_code="WDV442"
+  echo "Setting course code to: $(course_code)"
+  course_files="$(dirname $script_path)/files/$course_code"
+  case $2 in 
+    "download:data")
+      ;;
+    *)
+      show_help
+      ;;
+  esac
+}
+
+# Function to handle boilerplate related setups 
+handle_boilerplate() {
+  course_code="WDV"
+  install_path=$(pwd)
+  subtype=${2//:/-}
+  course_files="$(dirname $script_path)/files/$course_code/$subtype"
+  if [ -d "$course_files" ]; then
+    echo "Installing boilerplate code inside: $install_path"
+    cp -rf $course_files/* $install_path/
+    cd $install_path
+    npm init -y >> /dev/null
+    npm install -y --save-dev \
+      webpack \
+      webpack-cli\
+      webpack-dev-server \
+      css-loader \
+      style-loader \
+      html-webpack-plugin \
+      babel-loader \
+      @babel/preset-env  
+  else
+    echo -e "${RED}$2 is not a valid boilerplate template option.${NC}"
+    show_help
+  fi
+  case $2 in 
+    "ts:sass" | "ts:scss")
+      npm install -y --save-dev typescript ts-loader sass sass-loader
+      ;;
+    "ts:css")
+      npm install -y --save-dev typescript ts-loader
+      ;;
+    "es6:sass" | "es6:scss")
+      npm install -y --save-dev sass sass-loader
+      ;;
+    "es6:css")
+      ;;
+    *)
+      show_help
+      ;;
+  esac
+
+  case $1 in 
+    "webpack")
+      read -p "Which port do you want to bind to? [default 9000]:" port_number
+      webpack_file_path="$install_path/webpack.config.js"
+
+      # Check if the file exists
+      if [[ -f "$webpack_file_path" && -n "$port_number" ]]; then
+        # Use sed to replace instances of '9000' with the value of $port_number
+        sed -i "s/9000/$port_number/g" "$webpack_file_path"
+        echo "Updated webpack port to bind to port $port_number."
+      fi
+      if [ -f "package.json" ]; then
+        sed '/"scripts": {/,/},/c\
+  "scripts": {\
+    "build": "webpack",\
+    "start": "webpack serve"\
+  },' package.json > temp.json && mv temp.json package.json
+
+      echo 
+      echo 
+      echo -e "🚀🚀🚀 ${GREEN}Houston we are go for launch! Run the following command to start your project:${NC}"
+      echo 
+      echo -e "  👉  npm run start"
+      echo 
+      echo 
+      fi
+      ;;
+    *)
+      show_help
+      ;;
+  esac
+
+}
+
+# Main script logic
+if [ $# -lt 1 ]; then
+    show_help
+    exit 1
+fi
+
+case "$1" in
+    asl)
+        # Pass the second argument as a sub-command to handle_server?
+        handle_wdv442 $2 $3
+        ;;
+    wdv442)
+        # Pass the second argument as a sub-command to handle_database
+        handle_wdv442 $2 $3
+        ;;
+    WDV442)
+        # Pass the second argument as a sub-command to handle_database
+        handle_wdv442 $2 $3
+        ;;
+    pwa)
+        # Pass the second argument as a sub-command to handle_server?
+        handle_wdv3322 $2 $3
+        ;;
+    boilerplate)
+        # Pass the second argument as a sub-command to handle_server?
+        handle_boilerplate $2 $3
+        ;;
+    wdv3322)
+        # Pass the second argument as a sub-command to handle_database
+        handle_wdv3322 $2 $3
+        ;;
+    WDV3322)
+        # Pass the second argument as a sub-command to handle_database
+        handle_wdv3322 $2 $3
+        ;;
+    help)
+        show_help
+        ;;
+    *)
+        echo "Invalid command: $1"
+        show_help
+        ;;
+esac
